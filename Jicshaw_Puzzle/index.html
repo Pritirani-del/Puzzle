@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Jigsaw Puzzle Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Basic resets and body styling */
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      height: 100%;
+      background: #f0f0f0;
+      overflow: hidden;
+    }
+
+    /* Translucent overlay for difficulty selection */
+    #difficultyOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: linear-gradient(180deg, rgb(255, 98, 0), rgb(89, 0, 255));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      flex-direction: column;
+      color: #fff;
+    }
+
+    #difficultyOverlay h1 {
+      margin-bottom: 20px;
+    }
+
+    .diff-btn {
+      border: none;
+      color: white;
+      padding: 15px 25px;
+      margin: 10px;
+      font-size: 1.8rem;
+      font-weight: 600;
+      box-shadow: 0 9px #999;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .btn1 {
+      background-color: green;
+      color: white;
+    }
+
+    .btn2 {
+      background-color: orangered;
+      color: white;
+    }
+
+    .btn3 {
+      background-color: red;
+      color: white;
+    }
+
+    .diff-btn:hover {
+      background-color: #ffffff45;
+      color: black;
+    }
+
+    .diff-btn:active {
+      background-color: #3e8e41;
+      box-shadow: 0 5px #666;
+      transform: translateY(4px);
+    }
+
+    /* Main app layout */
+    #appContainer {
+      display: none;
+      height: 100%;
+      width: 100%;
+      position: relative;
+    }
+
+    /* Header with back and preview buttons */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: rgb(0, 0, 0);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: #fff;
+      z-index: 10;
+    }
+
+    header button {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Main puzzle area */
+    #mainArea {
+      position: absolute;
+      top: 50px;
+      bottom: 0;
+      left: 0;
+      right: 150px;
+      /* space for sidebar on desktop */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #040f31;
+    }
+
+    /* Puzzle container styling */
+    #puzzle {
+      display: grid;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #checkBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    #checkBtn:hover {
+      background-color: #2980b9;
+    }
+
+    #resultMessage {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: rgb(0, 255, 0);
+    }
+
+    .piece {
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      background-image: url('');
+      background-repeat: no-repeat;
+      cursor: grab;
+    }
+
+    /* Sidebar for thumbnails */
+    #sidebar {
+      position: absolute;
+      top: 50px;
+      bottom: 0;
+      right: 0;
+      width: 150px;
+      background: #000000;
+      overflow-y: auto;
+      padding: 5px;
+      box-sizing: border-box;
+      border: 2px solid black;
+    }
+
+    .thumb {
+      width: 100%;
+      margin-bottom: 10px;
+      cursor: pointer;
+      border: 3px solid black;
+      border-radius: 5px;
+    }
+
+    .thumb:hover {
+      border-color: #db3434;
+    }
+
+    /* Preview modal */
+    #previewModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    #previewModal img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* Responsive: on smaller screens, sidebar at bottom */
+    @media (max-width: 600px) {
+      #mainArea {
+        right: 0;
+        bottom: 150px;
+      }
+
+      #sidebar {
+        top: auto;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        height: 150px;
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+
+      .thumb {
+        width: auto;
+        height: 100%;
+        margin-right: 10px;
+      }
+      #resultMessage {
+      margin-top: 10px;
+      font-size: 13.5656564666px;
+      font-weight: bold;
+      color: rgb(0, 255, 0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Difficulty selection overlay -->
+  <div id="difficultyOverlay">
+    <h1 style="font-size: 2.5rem;">Select Difficulty</h1>
+    <!-- Four options -->
+    <button class="diff-btn btn1" data-diff="easy" data-grid="3">Easy 3×3)</button>
+    <button class="diff-btn btn2" data-diff="medium" data-grid="4">Medium (4×4)</button>
+    <button class="diff-btn btn3" data-diff="hard" data-grid="4">Hard (4×4)</button>
+  </div>
+
+  <!-- Main application container -->
+  <div id="appContainer">
+    <!-- Header with back and preview buttons -->
+    <header>
+      <button id="backBtn">&larr; Back</button>
+      <button id="previewBtn">Preview</button>
+    </header>
+    <!-- Main puzzle display area -->
+    <div id="mainArea">
+      <div id="puzzle"></div>
+      <button id="checkBtn">Check Puzzle</button>
+      <p id="resultMessage"></p>
+
+    </div>
+
+    <!-- Sidebar for thumbnails -->
+    <div id="sidebar"></div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal">
+    <img src="" alt="Preview">
+  </div>
+
+  <script>
+    // Global variables
+    let currentDifficulty = '';
+    let currentGridSize = 4;
+    let currentImages = {
+      easy: ['Easy/images1.jpeg/', 'Easy/images2.jpeg/', 'Easy/images6.jpeg/', 'Easy/images7.jpeg/', 'Easy/images8.jpeg', 'Easy/images9.jpeg', 'Easy/images(3).jpeg', 'Easy/image5.jpg', 'Easy/image4.jpeg', 'Easy/image5.jpeg'],
+      medium: ['Medium/image2.jpg', 'Medium/images1.jpeg',  'Medium/images2.jpeg', 'Medium/images3.jpeg', 'Medium/images4.jpeg', 'Medium/images5.jpeg', 'Medium/images6.jpeg'],
+      hard: ['extreme/image1.jpeg', 'extreme/image7.jpeg', 'extreme/images.jpeg', 'extreme/images(1).jpeg', 'extreme/images(2).jpeg']
+    };
+    let currentImageIndex = 0;
+
+    const diffOverlay = document.getElementById("difficultyOverlay");
+    const appContainer = document.getElementById("appContainer");
+    const backBtn = document.getElementById("backBtn");
+    const previewBtn = document.getElementById("previewBtn");
+    const puzzleEl = document.getElementById("puzzle");
+    const sidebar = document.getElementById("sidebar");
+    const previewModal = document.getElementById("previewModal");
+    const previewImg = previewModal.querySelector("img");
+
+    // When a difficulty button is clicked…
+    document.querySelectorAll(".diff-btn").forEach(btn => {
+      btn.addEventListener("click", function () {
+        currentDifficulty = this.dataset.diff;
+        currentGridSize = parseInt(this.dataset.grid);
+        currentImageIndex = 0;
+        diffOverlay.style.display = "none";
+        appContainer.style.display = "block";
+        loadPuzzleImage(getCurrentImage());
+        loadSidebar();
+      });
+    });
+
+    // Back button returns to difficulty selection
+    backBtn.addEventListener("click", () => {
+      appContainer.style.display = "none";
+      diffOverlay.style.display = "flex";
+      // Clear puzzle and sidebar
+      puzzleEl.innerHTML = "";
+      sidebar.innerHTML = "";
+    });
+
+    // Preview button opens modal with the current image
+    previewBtn.addEventListener("click", () => {
+      previewImg.src = getCurrentImage();
+      previewModal.style.display = "flex";
+    });
+    // Clicking on the modal closes it
+    previewModal.addEventListener("click", () => {
+      previewModal.style.display = "none";
+    });
+
+    // Get current image based on currentImageIndex and difficulty folder
+    function getCurrentImage() {
+      return currentImages[currentDifficulty][currentImageIndex];
+    }
+
+    // Load the jigsaw puzzle using the selected image and grid size
+    function loadPuzzleImage(imageUrl) {
+      // Clear previous puzzle
+      puzzleEl.innerHTML = "";
+      // Set grid dimensions
+      puzzleEl.style.gridTemplateColumns = `repeat(${currentGridSize}, 1fr)`;
+      const pieceSize = 100; // pixel size for each piece (adjust as needed)
+      // Set overall puzzle size
+      const puzzleSize = currentGridSize * pieceSize;
+      puzzleEl.style.width = puzzleSize + "px";
+      puzzleEl.style.height = puzzleSize + "px";
+
+      // Create an array to hold piece order (0 to n-1)
+      let positions = [];
+      for (let i = 0; i < currentGridSize * currentGridSize; i++) {
+        positions.push(i);
+      }
+      // Shuffle positions
+      positions.sort(() => Math.random() - 0.5);
+
+      // Create puzzle pieces
+      for (let i = 0; i < positions.length; i++) {
+        const piece = document.createElement("div");
+        piece.classList.add("piece");
+        piece.style.width = pieceSize + "px";
+        piece.style.height = pieceSize + "px";
+        // Calculate original row and col for background positioning
+        const originalIndex = positions[i];
+        const row = Math.floor(originalIndex / currentGridSize);
+        const col = originalIndex % currentGridSize;
+        piece.style.backgroundImage = `url('${imageUrl}')`;
+        piece.style.backgroundSize = `${puzzleSize}px ${puzzleSize}px`;
+        piece.style.backgroundPosition = `-${col * pieceSize}px -${row * pieceSize}px`;
+        // Store correct index and current index for checking solution
+        piece.dataset.correct = i;
+        piece.dataset.current = originalIndex;
+        // Make pieces draggable for swapping
+        piece.draggable = true;
+        piece.addEventListener("dragstart", dragStart);
+        piece.addEventListener("dragover", dragOver);
+        piece.addEventListener("drop", dropPiece);
+        puzzleEl.appendChild(piece);
+      }
+    }
+
+    // Drag and drop functions for puzzle pieces
+    let draggedPiece = null;
+    function dragStart(e) {
+      draggedPiece = this;
+    }
+    function dragOver(e) {
+      e.preventDefault();
+    }
+    function dropPiece(e) {
+      e.preventDefault();
+      if (draggedPiece === this) return;
+      // Swap background positions and data attributes
+      let tempBg = draggedPiece.style.backgroundPosition;
+      let tempData = draggedPiece.dataset.current;
+
+      draggedPiece.style.backgroundPosition = this.style.backgroundPosition;
+      draggedPiece.dataset.current = this.dataset.current;
+
+      this.style.backgroundPosition = tempBg;
+      this.dataset.current = tempData;
+    }
+
+    // Load sidebar thumbnails for the current difficulty folder.
+    function loadSidebar() {
+      sidebar.innerHTML = "";
+      const images = currentImages[currentDifficulty];
+      images.forEach((imgSrc, index) => {
+        // Skip current image in main puzzle display if desired (or include all)
+        const thumb = document.createElement("img");
+        thumb.src = imgSrc;
+        thumb.classList.add("thumb");
+        thumb.addEventListener("click", () => {
+          currentImageIndex = index;
+          loadPuzzleImage(getCurrentImage());
+        });
+        sidebar.appendChild(thumb);
+      });
+    }
+    document.getElementById("checkBtn").addEventListener("click", () => {
+      let pieces = document.querySelectorAll(".piece");
+      let isCorrect = true;
+
+      pieces.forEach(piece => {
+        if (piece.dataset.correct !== piece.dataset.current) {
+          isCorrect = false;
+        }
+      });
+
+      const resultMessage = document.getElementById("resultMessage");
+      if (isCorrect) {
+        resultMessage.textContent = "🎉 Congratulations! The puzzle is solved correctly!";
+        resultMessage.style.color = "YELLOWgreen";
+      } else {
+        resultMessage.textContent = "❌ Oops! Some pieces are in the wrong place.";
+        resultMessage.style.color = "PINK";
+      }
+    });
+
+  </script>
+</body>
+
+</html>
